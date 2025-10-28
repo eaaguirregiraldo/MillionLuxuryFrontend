@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 export default function PropertyCard({ property }) {
@@ -12,14 +12,59 @@ export default function PropertyCard({ property }) {
     priceProperty,
     price,
     imageUrl,
-    image
+    image,
+    images
   } = property
 
-  // Obtener la URL de la imagen desde diferentes posibles estructuras del backend
-  const getImageUrl = () => {
-    if (image?.file) return image.file
-    if (imageUrl) return imageUrl
-    return 'https://via.placeholder.com/800x500/E0E0E0/888888?text=No+Image'
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+
+  // Obtener todas las imágenes de la propiedad
+  const getAllImages = () => {
+    const imagesList = []
+    
+    // Verificar si existe un array de imágenes
+    if (images && Array.isArray(images) && images.length > 0) {
+      images.forEach(img => {
+        if (img?.file) {
+          imagesList.push(img.file)
+        } else if (typeof img === 'string') {
+          imagesList.push(img)
+        }
+      })
+    }
+    
+    // Si no hay array de imágenes, intentar con la imagen única
+    if (imagesList.length === 0) {
+      if (image?.file) {
+        imagesList.push(image.file)
+      } else if (imageUrl) {
+        imagesList.push(imageUrl)
+      }
+    }
+    
+    // Si no hay ninguna imagen, retornar placeholder
+    return imagesList.length > 0 ? imagesList : ['https://via.placeholder.com/800x500/E0E0E0/888888?text=No+Image']
+  }
+
+  const allImages = getAllImages()
+  const currentImage = allImages[currentImageIndex]
+
+  const nextImage = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev + 1) % allImages.length)
+  }
+
+  const prevImage = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)
+  }
+
+  const goToImage = (e, index) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setCurrentImageIndex(index)
   }
 
   const propertyId = _id || id
@@ -36,7 +81,31 @@ export default function PropertyCard({ property }) {
   return (
     <div className="card">
       <div className="card-image">
-        <img src={getImageUrl()} alt={propertyName} />
+        <div className="card-carousel">
+          <img src={currentImage} alt={propertyName} className="card-carousel-image" />
+          
+          {allImages.length > 1 && (
+            <>
+              <button className="card-carousel-btn card-carousel-btn-prev" onClick={prevImage}>
+                ‹
+              </button>
+              <button className="card-carousel-btn card-carousel-btn-next" onClick={nextImage}>
+                ›
+              </button>
+              
+              <div className="card-carousel-indicators">
+                {allImages.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`card-carousel-indicator ${index === currentImageIndex ? 'active' : ''}`}
+                    onClick={(e) => goToImage(e, index)}
+                    aria-label={`Ir a imagen ${index + 1}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
       <div className="card-body">
         <div className="card-status-bar">

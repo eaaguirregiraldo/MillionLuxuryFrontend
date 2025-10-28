@@ -20,7 +20,7 @@ export default function PropertyDetails() {
         console.log('✅ [PropertyDetails] Property loaded successfully')
         setProperty(data)
         
-        // Cargar información del owner si existe idOwner
+        // Cargar información del owner si existe idOwner o ownerId
         if (data.idOwner || data.ownerId) {
           const ownerId = data.idOwner || data.ownerId
           console.log('🔄 [PropertyDetails] Loading owner with ID:', ownerId)
@@ -69,12 +69,19 @@ export default function PropertyDetails() {
   const getAllImages = () => {
     const imagesList = []
     
+    console.log('🖼️ [PropertyDetails] Getting all images from property:', property)
+    
     // Verificar si existe un array de imágenes
     if (images && Array.isArray(images) && images.length > 0) {
-      images.forEach(img => {
+      console.log('📸 [PropertyDetails] Found images array with', images.length, 'images')
+      
+      // En la vista de detalles, mostrar TODAS las imágenes (enabled o no)
+      images.forEach((img, index) => {
         if (img?.file) {
+          console.log(`  ✅ Image ${index + 1}:`, img.file, '| enabled:', img.enabled)
           imagesList.push(img.file)
         } else if (typeof img === 'string') {
+          console.log(`  ✅ Image ${index + 1}:`, img)
           imagesList.push(img)
         }
       })
@@ -82,12 +89,17 @@ export default function PropertyDetails() {
     
     // Si no hay array de imágenes, intentar con la imagen única
     if (imagesList.length === 0) {
+      console.log('⚠️ [PropertyDetails] No images array found, trying single image fallback')
       if (image?.file) {
+        console.log('  ✅ Using image.file:', image.file)
         imagesList.push(image.file)
       } else if (imageUrl) {
+        console.log('  ✅ Using imageUrl:', imageUrl)
         imagesList.push(imageUrl)
       }
     }
+    
+    console.log('🎨 [PropertyDetails] Total images to show:', imagesList.length)
     
     // Si no hay ninguna imagen, retornar placeholder
     return imagesList.length > 0 ? imagesList : ['https://via.placeholder.com/1200x750/E0E0E0/888888?text=No+Image']
@@ -110,22 +122,44 @@ export default function PropertyDetails() {
   const getOwnerImageUrl = () => {
     if (!owner) return 'https://via.placeholder.com/200x200/E0E0E0/888888?text=No+Photo'
     
-    if (owner.image?.file) {
-      return owner.image.file
+    console.log('👤 [PropertyDetails] Getting owner photo from:', owner)
+    
+    // Primero verificar si photo es un string directo
+    if (typeof owner.photo === 'string') {
+      console.log('  ✅ Using owner.photo (string):', owner.photo)
+      return owner.photo
     }
     
-    if (owner.imageUrl) {
-      return owner.imageUrl
-    }
-    
+    // Luego verificar estructura anidada photo.file
     if (owner.photo?.file) {
+      console.log('  ✅ Using owner.photo.file:', owner.photo.file)
       return owner.photo.file
     }
     
+    // Verificar image como string directo
+    if (typeof owner.image === 'string') {
+      console.log('  ✅ Using owner.image (string):', owner.image)
+      return owner.image
+    }
+    
+    // Verificar estructura anidada image.file
+    if (owner.image?.file) {
+      console.log('  ✅ Using owner.image.file:', owner.image.file)
+      return owner.image.file
+    }
+    
+    // Otros fallbacks
+    if (owner.imageUrl) {
+      console.log('  ✅ Using owner.imageUrl:', owner.imageUrl)
+      return owner.imageUrl
+    }
+    
     if (owner.photoUrl) {
+      console.log('  ✅ Using owner.photoUrl:', owner.photoUrl)
       return owner.photoUrl
     }
     
+    console.log('  ⚠️ No photo found, using placeholder')
     return 'https://via.placeholder.com/200x200/E0E0E0/888888?text=No+Photo'
   }
 
@@ -169,7 +203,6 @@ export default function PropertyDetails() {
   }
 
   const allImages = getAllImages()
-  const currentImage = allImages[currentImageIndex]
 
   return (
     <div className="detail">
@@ -183,37 +216,17 @@ export default function PropertyDetails() {
       </div>
       
       <div className="detail-grid">
-        <div className="detail-image">
-          <div className="carousel">
-            <img src={currentImage} alt={propertyName} className="carousel-image" />
-            
-            {allImages.length > 1 && (
-              <>
-                <button className="carousel-btn carousel-btn-prev" onClick={prevImage}>
-                  ‹
-                </button>
-                <button className="carousel-btn carousel-btn-next" onClick={nextImage}>
-                  ›
-                </button>
-                
-                <div className="carousel-indicators">
-                  {allImages.map((_, index) => (
-                    <button
-                      key={index}
-                      className={`carousel-indicator ${index === currentImageIndex ? 'active' : ''}`}
-                      onClick={() => goToImage(index)}
-                      aria-label={`Ir a imagen ${index + 1}`}
-                    />
-                  ))}
-                </div>
-                
-                <div className="carousel-counter">
-                  {currentImageIndex + 1} / {allImages.length}
-                </div>
-              </>
-            )}
+        <div className="detail-images-section">
+          {/* Galería de imágenes */}
+          <div className="detail-gallery">
+            {allImages.map((imageUrl, index) => (
+              <div key={index} className="detail-gallery-item">
+                <img src={imageUrl} alt={`${propertyName} - Imagen ${index + 1}`} />
+              </div>
+            ))}
           </div>
         </div>
+        
         <div className="detail-body">
           <div className="card-price">${formatPrice(propertyPrice)}</div>
           <h2>{propertyName}</h2>
